@@ -1,0 +1,17 @@
+[Unit]
+Description=Alona Healthcheck (mosquitto/core/disk/backup)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/alona-healthcheck
+
+# Env knobs (optional):
+# Environment=DISK_MAX_USED_PCT=85
+# Environment=BACKUP_MAX_AGE_HOURS=48
+# Environment=CHECK_CORE_HTTP=0
+# Environment=CORE_HEALTH_URL=http://127.0.0.1:4000/health
+
+StandardOutput=journal
+StandardError=journal
