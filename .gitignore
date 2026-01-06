@@ -1,1 +1,55 @@
+# OS / Editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Local env / secrets (NEVER COMMIT)
+.env
+.env.*
+*.env
+secrets/
+**/secrets/
+**/*.key
+**/*.pem
+**/*.crt
+**/*passwd*
+**/mosquitto/passwd
+**/passwd
+
+# Backups & data (should live on the Pi, not in git)
+backups/*.tar*
+backups/*.gz
+backups/*.xz
+backups/*.zst
+backups/*.zip
+**/backups/
+data/
+**/data/
+*.sqlite
+*.sqlite3
+*.db
+*.wal
+*.shm
+
+# Logs
+*.log
+logs/
+**/logs/
+
+# Release artifacts / packages (if you ever build/download them locally)
+dist/
+build/
+releases/
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+
+# Temporary debug bundles
+debug-bundles/
+*.dump
+
 CHATGPT.md
