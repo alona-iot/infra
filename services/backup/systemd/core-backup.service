@@ -1,0 +1,14 @@
+[Unit]
+Description=Core Backup (SQLite + /etc/alona)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/alona-core-backup
+# If you want retention here too, you can chain:
+# ExecStartPost=/usr/local/bin/alona-core-retention
+
+# Logs to journald
+StandardOutput=journal
+StandardError=journal
