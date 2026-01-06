@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Alona IoT - Infra installer (Mosquitto + Core scaffolding)
+# Alona IoT - Infra installer (Mosquitto + Core scaffolding + Backups)
 # - LAN-only MQTT with auth + ACL
-# - Core (Phoenix + MQTT ingest) runs as a systemd service: core.service
+# - Core runs as systemd: core.service
+# - Backups run via systemd timer: core-backup.timer
 #
 # Run from repo root:
 #   sudo ./scripts/install.sh --pi-ip 192.168.1.50 --nodes node-001,node-002
@@ -13,6 +14,8 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 MOSQ_TEMPLATE_DIR="$REPO_ROOT/services/mosquitto"
 CORE_TEMPLATE_DIR="$REPO_ROOT/services/core"
+BACKUP_TEMPLATE_DIR="$REPO_ROOT/services/backup/systemd"
+BACKUP_SCRIPTS_DIR="$REPO_ROOT/backups"
 
 usage() {
   cat <<'USAGE'
@@ -20,7 +23,7 @@ Usage:
   sudo ./scripts/install.sh --pi-ip <LAN_IP> [options]
 
 Required:
-  --pi-ip <LAN_IP>              LAN IP of the Raspberry Pi (for smoke test & output)
+  --pi-ip <LAN_IP>              LAN IP of the Raspberry Pi (for MQTT smoke test & output)
 
 Options:
   --core-mqtt-user <name>       MQTT username for backend (default: alona-core)
@@ -28,11 +31,14 @@ Options:
   --no-test                     Skip mosquitto_pub/sub smoke test
   --skip-core                   Do not install core.service or /etc/alona/core.env
   --skip-mosquitto              Do not install/configure mosquitto (core-only scaffolding)
+  --skip-backups                Do not install backup scripts/timer
+  --no-backup-test              Do not run an immediate backup after installing timer
   -h, --help                    Show help
 
 Environment variables (optional):
   CORE_MQTT_PASSWORD            If set, will be used for core MQTT user without prompting
   NODE_MQTT_PASSWORD            If set, used for all node MQTT users without prompting (not recommended long-term)
+  KEEP                          If set, retention KEEP=N backups (default in retention.sh is 14)
 
 Notes:
   - This script DOES NOT commit secrets. It sets passwords on the Pi in /etc/mosquitto/passwd.
@@ -73,6 +79,20 @@ require_files() {
     fi
   done
 
+  # backup templates + scripts
+  for f in \
+    "$BACKUP_SCRIPTS_DIR/backup.sh" \
+    "$BACKUP_SCRIPTS_DIR/retention.sh" \
+    "$BACKUP_SCRIPTS_DIR/restore.sh" \
+    "$BACKUP_TEMPLATE_DIR/core-backup.service" \
+    "$BACKUP_TEMPLATE_DIR/core-backup.timer"
+  do
+    if [[ ! -f "$f" ]]; then
+      echo "ERROR: Missing required file: $f" >&2
+      missing=1
+    fi
+  done
+
   [[ "$missing" -eq 0 ]] || exit 1
 }
 
@@ -83,6 +103,8 @@ parse_args() {
   DO_TEST=1
   INSTALL_CORE=1
   INSTALL_MOSQ=1
+  INSTALL_BACKUPS=1
+  DO_BACKUP_TEST=1
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -98,6 +120,10 @@ parse_args() {
         INSTALL_CORE=0; shift 1;;
       --skip-mosquitto)
         INSTALL_MOSQ=0; shift 1;;
+      --skip-backups)
+        INSTALL_BACKUPS=0; shift 1;;
+      --no-backup-test)
+        DO_BACKUP_TEST=0; shift 1;;
       -h|--help)
         usage; exit 0;;
       *)
@@ -113,8 +139,8 @@ parse_args() {
     exit 1
   fi
 
-  if [[ "$INSTALL_CORE" -eq 0 && "$INSTALL_MOSQ" -eq 0 ]]; then
-    echo "ERROR: Nothing to do (both --skip-core and --skip-mosquitto were set)." >&2
+  if [[ "$INSTALL_CORE" -eq 0 && "$INSTALL_MOSQ" -eq 0 && "$INSTALL_BACKUPS" -eq 0 ]]; then
+    echo "ERROR: Nothing to do (all components skipped)." >&2
     exit 1
   fi
 }
@@ -128,8 +154,8 @@ apt_install() {
     systemctl enable mosquitto >/dev/null
   fi
 
-  # (Core release dependencies are assumed to be bundled in the release.
-  #  This script only installs service scaffolding.)
+  # Optional tools: lsof/fuser help debugging; not required.
+  apt-get install -y curl >/dev/null 2>&1 || true
 }
 
 ensure_system_user() {
@@ -148,7 +174,9 @@ setup_dirs() {
   install -d -m 0755 /var/lib/alona
   install -d -m 0755 /var/lib/alona/db
   install -d -m 0755 /var/lib/alona/backups
+  install -d -m 0755 /var/lib/alona/debug-bundles
   install -d -m 0755 /opt/core
+  install -d -m 0755 /opt/core/releases
 
   chown -R alona:alona /var/lib/alona
 }
@@ -241,7 +269,6 @@ restart_mosquitto() {
   echo "==> Restarting Mosquitto..."
   systemctl restart mosquitto
   systemctl --no-pager --full status mosquitto || true
-
   echo "==> Mosquitto log tail:"
   journalctl -u mosquitto -n 50 --no-pager || true
 }
@@ -273,13 +300,42 @@ install_core_scaffolding() {
   echo "    Note: core will fail to start until /opt/core/current contains a valid Elixir release."
 }
 
-smoke_test() {
-  [[ "$INSTALL_MOSQ" -eq 1 ]] || return 0
+install_backups() {
+  [[ "$INSTALL_BACKUPS" -eq 1 ]] || return 0
 
-  if [[ "$DO_TEST" -eq 0 ]]; then
-    echo "==> Skipping MQTT smoke test (--no-test)."
-    return 0
+  echo "==> Installing backup scripts + systemd timer..."
+
+  # Install scripts to stable paths
+  install -m 0755 "$BACKUP_SCRIPTS_DIR/backup.sh"    /usr/local/bin/alona-core-backup
+  install -m 0755 "$BACKUP_SCRIPTS_DIR/retention.sh" /usr/local/bin/alona-core-retention
+  install -m 0755 "$BACKUP_SCRIPTS_DIR/restore.sh"   /usr/local/bin/alona-core-restore
+
+  # Install systemd unit + timer
+  cp -a "$BACKUP_TEMPLATE_DIR/core-backup.service" /etc/systemd/system/core-backup.service
+  cp -a "$BACKUP_TEMPLATE_DIR/core-backup.timer"   /etc/systemd/system/core-backup.timer
+  chown root:root /etc/systemd/system/core-backup.service /etc/systemd/system/core-backup.timer
+  chmod 0644 /etc/systemd/system/core-backup.service /etc/systemd/system/core-backup.timer
+
+  systemctl daemon-reload
+  systemctl enable --now core-backup.timer >/dev/null
+
+  echo "==> Backup timer enabled: core-backup.timer"
+
+  if [[ "$DO_BACKUP_TEST" -eq 1 ]]; then
+    echo "==> Running an immediate backup test..."
+    systemctl start core-backup.service || true
+    journalctl -u core-backup.service -n 120 --no-pager || true
+
+    # Also run retention (optional) if KEEP is set or default is fine
+    /usr/local/bin/alona-core-retention || true
+  else
+    echo "==> Skipping immediate backup test (--no-backup-test)."
   fi
+}
+
+smoke_test_mqtt() {
+  [[ "$INSTALL_MOSQ" -eq 1 ]] || return 0
+  [[ "$DO_TEST" -eq 1 ]] || { echo "==> Skipping MQTT smoke test (--no-test)."; return 0; }
 
   echo
   echo "==> MQTT smoke test (subscribe + publish as '$CORE_MQTT_USER')"
@@ -324,23 +380,38 @@ final_notes() {
   echo
   echo "==> Install complete."
   echo
+
   if [[ "$INSTALL_CORE" -eq 1 ]]; then
     echo "Core scaffolding:"
     echo "  - systemd unit: /etc/systemd/system/core.service"
-    echo "  - env file:     /etc/alona/core.env (edit secrets like SECRET_KEY_BASE, MQTT_PASSWORD)"
+    echo "  - env file:     /etc/alona/core.env (edit SECRET_KEY_BASE, MQTT_PASSWORD, etc.)"
     echo "  - release path: /opt/core/current (deploy a release here next)"
+    echo "  - start:        sudo systemctl start core"
     echo
-    echo "When you have a release in /opt/core/current:"
-    echo "  sudo systemctl start core"
-    echo "  sudo systemctl status core --no-pager"
   fi
+
   if [[ "$INSTALL_MOSQ" -eq 1 ]]; then
-    echo
     echo "Mosquitto:"
     echo "  - config: /etc/mosquitto/mosquitto.conf"
     echo "  - acl:    /etc/mosquitto/acl"
     echo "  - passwd: /etc/mosquitto/passwd"
+    echo
   fi
+
+  if [[ "$INSTALL_BACKUPS" -eq 1 ]]; then
+    echo "Backups:"
+    echo "  - timer:  core-backup.timer (daily)"
+    echo "  - run now: sudo systemctl start core-backup.service"
+    echo "  - logs:   journalctl -u core-backup.service -n 200 --no-pager"
+    echo "  - files:  /var/lib/alona/backups/"
+    echo
+  fi
+
+  echo "Next scripts:"
+  echo "  - deploy:    ./scripts/deploy.sh --tar <file> --version <ver>"
+  echo "  - rollback:  ./scripts/rollback.sh"
+  echo "  - status:    ./scripts/status.sh"
+  echo "  - debug:     ./scripts/collect-debug.sh"
 }
 
 main() {
@@ -349,9 +420,10 @@ main() {
   require_files
 
   echo "==> Alona Infra install"
-  echo "    Pi IP:            $PI_IP"
+  echo "    Pi IP:             $PI_IP"
   echo "    Install mosquitto: $INSTALL_MOSQ"
   echo "    Install core:      $INSTALL_CORE"
+  echo "    Install backups:   $INSTALL_BACKUPS"
   echo "    Core MQTT user:    $CORE_MQTT_USER"
   echo "    Nodes:             ${NODES_CSV:-<none>}"
   echo
@@ -364,9 +436,11 @@ main() {
   ensure_passwd_file
   create_mqtt_users
   restart_mosquitto
-  smoke_test
+  smoke_test_mqtt
 
   install_core_scaffolding
+  install_backups
+
   final_notes
 }
 
