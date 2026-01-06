@@ -1,0 +1,36 @@
+[Unit]
+Description=Core (Phoenix UI + MQTT ingest)
+After=network-online.target mosquitto.service
+Wants=network-online.target mosquitto.service
+
+[Service]
+Type=simple
+User=alona
+Group=alona
+WorkingDirectory=/opt/core/current
+
+# Read environment variables (secrets live here, not in git)
+EnvironmentFile=/etc/alona/core.env
+
+# Start the Elixir release
+ExecStart=/opt/core/current/bin/core start
+ExecStop=/opt/core/current/bin/core stop
+
+# Resilience
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=30
+
+# Basic hardening (keep it simple)
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=full
+ReadWritePaths=/var/lib/alona
+
+# Logs go to journald
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
