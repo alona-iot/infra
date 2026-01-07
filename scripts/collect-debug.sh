@@ -156,19 +156,19 @@ collect_network_info() {
 
 collect_services_info() {
   write_file "services/systemctl_status_mosquitto.txt" systemctl --no-pager --full status mosquitto
-  write_file "services/systemctl_status_core.txt" systemctl --no-pager --full status core
+  write_file "services/systemctl_status_alona-core.txt" systemctl --no-pager --full status alona-core
 
-  write_file "services/is_enabled.txt" bash -lc "systemctl is-enabled mosquitto core 2>&1 || true"
-  write_file "services/is_active.txt"  bash -lc "systemctl is-active mosquitto core 2>&1 || true"
+  write_file "services/is_enabled.txt" bash -lc "systemctl is-enabled mosquitto alona-core 2>&1 || true"
+  write_file "services/is_active.txt"  bash -lc "systemctl is-active mosquitto alona-core 2>&1 || true"
 
-  copy_file_if_exists "/etc/systemd/system/core.service" "services/core.service"
-  copy_dir_if_exists  "/etc/systemd/system/core.service.d" "services/core.service.d"
+  copy_file_if_exists "/etc/systemd/system/alona-core.service" "services/alona-core.service"
+  copy_dir_if_exists  "/etc/systemd/system/alona-core.service.d" "services/alona-core.service.d"
 }
 
 collect_logs() {
   # Unit logs since SINCE
   journal_tail "mosquitto" "logs/journal_mosquitto_since.txt"
-  journal_tail "core"      "logs/journal_core_since.txt"
+  journal_tail "alona-core" "logs/journal_alona-core_since.txt"
 
   # Errors since SINCE
   write_file "logs/journal_errors_since.txt" bash -lc \
@@ -193,8 +193,8 @@ collect_configs() {
 }
 
 collect_runtime_layout() {
-  write_file "runtime/opt_core.txt" bash -lc \
-    "ls -la /opt/core; echo; echo 'current ->'; readlink -f /opt/core/current 2>/dev/null || true; echo; echo 'previous ->'; readlink -f /opt/core/previous 2>/dev/null || true"
+  write_file "runtime/opt_alona-core.txt" bash -lc \
+    "ls -la /opt/alona-core; echo; echo 'current ->'; readlink -f /opt/alona-core/current 2>/dev/null || true; echo; echo 'previous ->'; readlink -f /opt/alona-core/previous 2>/dev/null || true"
 
   write_file "runtime/var_lib_alona.txt" bash -lc \
     "ls -la /var/lib/alona; echo; ls -la /var/lib/alona/db 2>/dev/null || true; echo; ls -la /var/lib/alona/backups 2>/dev/null || true"

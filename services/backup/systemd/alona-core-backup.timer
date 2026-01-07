@@ -1,5 +1,5 @@
 [Unit]
-Description=Run Core Backup Daily
+Description=Run Alona Core Backup Daily
 
 [Timer]
 OnCalendar=daily
@@ -8,3 +8,4 @@ RandomizedDelaySec=10m
 
 [Install]
 WantedBy=timers.target
+

@@ -122,12 +122,12 @@ Critical paths:
 
 - `/etc/alona` → **root-owned**, secrets inside
 - `/var/lib/alona` → owned by `alona`
-- `/opt/core` → root-owned, read-only releases
+- `/opt/alona-core` → root-owned, read-only releases
 
 Verify:
 
 ```bash
-ls -ld /etc/alona /var/lib/alona /opt/core
+ls -ld /etc/alona /var/lib/alona /opt/alona-core
 ```
 
 ---

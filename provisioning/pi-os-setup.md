@@ -126,8 +126,11 @@ sudo nano /etc/systemd/journald.conf
 
 Suggested values:
 
+- `Storage=persistent`
 - `SystemMaxUse=200M`
 - `RuntimeMaxUse=100M`
+- `SystemKeepFree=50M`
+- `MaxRetentionSec=30day`
 
 Restart journald:
 
@@ -170,8 +173,8 @@ Policy:
 Example:
 
 ```bash
-mkdir -p ~/alona
-cd ~/alona
+mkdir -p ~/alona-iot
+cd ~/alona-iot
 git clone <YOUR_INFRA_REPO_URL> infra
 cd infra
 ```
@@ -192,8 +195,8 @@ sudo ./scripts/install.sh --pi-ip <PI_LAN_IP> --nodes node-001,node-002
 
 ```bash
 ./scripts/status.sh
-sudo systemctl status mosquitto core --no-pager
-sudo systemctl list-timers --all | grep core-backup || true
+sudo systemctl status mosquitto alona-core --no-pager
+sudo systemctl list-timers --all | grep alona-core-backup || true
 ```
 
 ---
@@ -207,6 +210,6 @@ sudo ./scripts/deploy.sh --tar /path/to/core-<ver>.tar.gz --version <ver>
 Check:
 
 ```bash
-sudo systemctl status core --no-pager
-sudo journalctl -u core -n 200 --no-pager
+sudo systemctl status alona-core --no-pager
+sudo journalctl -u alona-core -n 200 --no-pager
 ```

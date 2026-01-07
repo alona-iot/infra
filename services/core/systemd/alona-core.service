@@ -7,14 +7,14 @@ Wants=network-online.target mosquitto.service
 Type=simple
 User=alona
 Group=alona
-WorkingDirectory=/opt/core/current
+WorkingDirectory=/opt/alona-core/current
 
 # Read environment variables (secrets live here, not in git)
 EnvironmentFile=/etc/alona/core.env
 
 # Start the Elixir release
-ExecStart=/opt/core/current/bin/core start
-ExecStop=/opt/core/current/bin/core stop
+ExecStart=/opt/alona-core/current/bin/core start
+ExecStop=/opt/alona-core/current/bin/core stop
 
 # Resilience
 Restart=on-failure

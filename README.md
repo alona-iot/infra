@@ -61,7 +61,7 @@ See:
 
 - `provisioning/pi-os-setup.md`
 - `services/mosquitto/`
-- `services/alona-core/`
+- `services/core/`
 - `docs/runbook.md`
 
 ## Repository Layout
@@ -92,7 +92,7 @@ See `scripts/deploy.sh` and `scripts/update.sh` (to be added).
 
 Common operator actions (examples; actual commands live in `docs/runbook.md`):
 
-- Check service status (broker + core)
+- Check service status (broker + alona-core)
 - View logs (journald)
 - Restart a single component without affecting others
 - Verify disk usage and backup health
@@ -119,7 +119,7 @@ This repo documents how to recover from common failures:
 - Power loss / unclean shutdown
 - SD card corruption symptoms
 - Mosquitto misconfiguration or auth issues
-- Core service crash loops
+- alona-core service crash loops
 - Database locked/corrupt scenarios
 - Running out of disk space
 
@@ -145,7 +145,7 @@ See `docs/runbook.md` and `docs/disaster-recovery.md`.
 Initial milestones:
 
 - Mosquitto config + ACL + user management
-- systemd units for broker + core
+- systemd units for broker + alona-core
 - Local backup/restore with retention
 - Minimal health check script + "collect debug bundle"
 - Documented runbook and disaster recovery drill

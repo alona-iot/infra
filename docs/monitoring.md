@@ -8,10 +8,10 @@ A systemd timer runs a healthcheck script every 5 minutes and logs the result to
 
 Health checks:
 - `mosquitto` service active
-- `core` service active
+- `alona-core` service active
 - disk usage under a threshold (default: 85% used)
 - last successful backup age under a threshold (default: 48 hours)
-- optional HTTP check to `core` health endpoint (disabled by default)
+- optional HTTP check to `alona-core` health endpoint (disabled by default)
 
 ## Files
 

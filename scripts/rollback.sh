@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Roll back core.service to /opt/core/previous (if present).
+# Roll back alona-core.service to /opt/alona-core/previous (if present).
 #
 # Example:
 #   sudo ./scripts/rollback.sh
@@ -12,7 +12,7 @@ Usage:
   sudo ./scripts/rollback.sh [--no-restart]
 
 Rolls back:
-  /opt/core/current -> /opt/core/previous
+  /opt/alona-core/current -> /opt/alona-core/previous
 
 USAGE
 }
@@ -39,27 +39,27 @@ main() {
   need_root
   parse_args "$@"
 
-  if [[ ! -L /opt/core/previous ]]; then
-    echo "ERROR: /opt/core/previous symlink not found. Nothing to roll back to." >&2
+  if [[ ! -L /opt/alona-core/previous ]]; then
+    echo "ERROR: /opt/alona-core/previous symlink not found. Nothing to roll back to." >&2
     exit 1
   fi
 
   local prev
-  prev="$(readlink -f /opt/core/previous)"
+  prev="$(readlink -f /opt/alona-core/previous)"
 
   if [[ ! -d "$prev" ]]; then
     echo "ERROR: previous target does not exist: $prev" >&2
     exit 1
   fi
 
-  echo "==> Rolling back: /opt/core/current -> $prev"
-  ln -sfn "$prev" /opt/core/current
+  echo "==> Rolling back: /opt/alona-core/current -> $prev"
+  ln -sfn "$prev" /opt/alona-core/current
 
   if [[ "$RESTART" -eq 1 ]]; then
-    echo "==> Restarting core.service"
-    systemctl restart core
-    systemctl --no-pager --full status core || true
-    journalctl -u core -n 100 --no-pager || true
+    echo "==> Restarting alona-core.service"
+    systemctl restart alona-core
+    systemctl --no-pager --full status alona-core || true
+    journalctl -u alona-core -n 100 --no-pager || true
   else
     echo "==> Skipping restart (--no-restart)."
   fi

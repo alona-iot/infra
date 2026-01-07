@@ -58,7 +58,7 @@ write_manifest() {
     echo
     echo "[services]"
     systemctl is-active mosquitto 2>/dev/null || true
-    systemctl is-active core 2>/dev/null || true
+    systemctl is-active alona-core 2>/dev/null || true
     echo
     echo "[disk]"
     df -h /var/lib/alona 2>/dev/null || df -h /
@@ -71,8 +71,8 @@ write_manifest() {
     fi
     echo
     echo "[symlinks]"
-    echo -n "current="; readlink -f /opt/core/current 2>/dev/null || true
-    echo -n "previous="; readlink -f /opt/core/previous 2>/dev/null || true
+    echo -n "current="; readlink -f /opt/alona-core/current 2>/dev/null || true
+    echo -n "previous="; readlink -f /opt/alona-core/previous 2>/dev/null || true
   } >"$mf"
 }
 

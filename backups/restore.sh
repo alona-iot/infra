@@ -7,10 +7,10 @@ set -euo pipefail
 #   sudo ./backups/restore.sh --from /var/lib/alona/backups/core-backup-<...>.tar.gz
 #
 # What it does:
-# - stops core.service
+# - stops alona-core.service
 # - restores /etc/alona (overwrites; keeps a timestamped backup)
 # - restores SQLite DB into /var/lib/alona/db/alona.sqlite3
-# - restarts core.service
+# - restarts alona-core.service
 
 DB_DIR="/var/lib/alona/db"
 DB_FILE="${DB_DIR}/alona.sqlite3"
@@ -52,8 +52,8 @@ main() {
   [[ -n "$src" ]] || { echo "ERROR: --from is required" >&2; usage; exit 1; }
   [[ -f "$src" ]] || { echo "ERROR: backup not found: $src" >&2; exit 1; }
 
-  echo "==> Stopping core.service"
-  systemctl stop core || true
+  echo "==> Stopping alona-core.service"
+  systemctl stop alona-core || true
 
   local tmp
   tmp="$(mktemp -d /tmp/alona-restore.XXXXXX)"
@@ -97,12 +97,12 @@ main() {
   fi
 
   if [[ "$restart" -eq 1 ]]; then
-    echo "==> Starting core.service"
-    systemctl start core || true
-    systemctl --no-pager --full status core || true
-    journalctl -u core -n 80 --no-pager || true
+    echo "==> Starting alona-core.service"
+    systemctl start alona-core || true
+    systemctl --no-pager --full status alona-core || true
+    journalctl -u alona-core -n 80 --no-pager || true
   else
-    echo "==> Restore complete (core not restarted due to --no-restart)."
+    echo "==> Restore complete (alona-core not restarted due to --no-restart)."
   fi
 }
 

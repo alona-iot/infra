@@ -13,8 +13,8 @@ Everything here assumes:
 ## Services
 
 - `mosquitto` — MQTT broker
-- `core` — Phoenix + ingestion + UI
-- `core-backup.timer` — daily backups
+- `alona-core` — Phoenix + ingestion + UI
+- `alona-core-backup.timer` — daily backups
 - `alona-health.timer` — 5-minute health checks
 
 ---
@@ -23,18 +23,18 @@ Everything here assumes:
 
 ### Service status
 ```bash
-sudo systemctl status mosquitto core --no-pager
+sudo systemctl status mosquitto alona-core --no-pager
 ```
 
 ### Restart services
 ```bash
 sudo systemctl restart mosquitto
-sudo systemctl restart core
+sudo systemctl restart alona-core
 ```
 
 ### Logs
 ```bash
-journalctl -u core -n 200 --no-pager
+journalctl -u alona-core -n 200 --no-pager
 journalctl -u mosquitto -n 200 --no-pager
 ```
 
@@ -56,7 +56,7 @@ cat /var/lib/alona/backups/LAST_SUCCESSFUL_ISO
 
 ### Run backup manually
 ```bash
-sudo systemctl start core-backup.service
+sudo systemctl start alona-core-backup.service
 ```
 
 ### Restore
@@ -64,7 +64,7 @@ sudo systemctl start core-backup.service
 sudo /usr/local/bin/alona-core-restore --from /var/lib/alona/backups/core-backup-<file>.tar.gz
 ```
 
-⚠️ Restore stops `core` and overwrites DB + `/etc/alona`.
+⚠️ Restore stops `alona-core` and overwrites DB + `/etc/alona`.
 
 ---
 

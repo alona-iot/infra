@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Deploy a Core release tarball to the Pi (versioned) and switch /opt/core/current.
+# Deploy a Core release tarball to the Pi (versioned) and switch /opt/alona-core/current.
 #
 # Example:
 #   sudo ./scripts/deploy.sh --tar /tmp/core-0.1.0.tar.gz --version 0.1.0
@@ -19,13 +19,13 @@ Usage:
 Options:
   --tar <path>        Path to release tarball (.tar.gz or .tgz)
   --version <ver>     Release version label (e.g. 0.1.0, 2026-01-06_1)
-  --no-restart        Do not restart core.service (just install & switch symlink)
+  --no-restart        Do not restart alona-core.service (just install & switch symlink)
   -h, --help          Show help
 
 Deploy layout:
-  /opt/core/releases/<version>/
-  /opt/core/current  -> /opt/core/releases/<version>
-  /opt/core/previous -> previous target (if any)
+  /opt/alona-core/releases/<version>/
+  /opt/alona-core/current  -> /opt/alona-core/releases/<version>
+  /opt/alona-core/previous -> previous target (if any)
 USAGE
 }
 
@@ -71,13 +71,13 @@ parse_args() {
 }
 
 safe_mkdirs() {
-  install -d -m 0755 /opt/core
-  install -d -m 0755 /opt/core/releases
-  chown -R root:root /opt/core
+  install -d -m 0755 /opt/alona-core
+  install -d -m 0755 /opt/alona-core/releases
+  chown -R root:root /opt/alona-core
 }
 
 extract_release() {
-  local dest="/opt/core/releases/$VERSION"
+  local dest="/opt/alona-core/releases/$VERSION"
 
   if [[ -e "$dest" ]]; then
     echo "ERROR: Destination already exists: $dest" >&2
@@ -120,9 +120,9 @@ extract_release() {
 }
 
 switch_symlink() {
-  local new="/opt/core/releases/$VERSION"
-  local current="/opt/core/current"
-  local previous="/opt/core/previous"
+  local new="/opt/alona-core/releases/$VERSION"
+  local current="/opt/alona-core/current"
+  local previous="/opt/alona-core/previous"
 
   echo "==> Switching symlink: $current -> $new"
 
@@ -145,15 +145,15 @@ restart_core() {
     return 0
   fi
 
-  echo "==> Restarting core.service"
+  echo "==> Restarting alona-core.service"
   systemctl daemon-reload >/dev/null 2>&1 || true
-  systemctl restart core
+  systemctl restart alona-core
 
-  echo "==> core.service status:"
-  systemctl --no-pager --full status core || true
+  echo "==> alona-core.service status:"
+  systemctl --no-pager --full status alona-core || true
 
-  echo "==> core.service log tail:"
-  journalctl -u core -n 100 --no-pager || true
+  echo "==> alona-core.service log tail:"
+  journalctl -u alona-core -n 100 --no-pager || true
 }
 
 main() {

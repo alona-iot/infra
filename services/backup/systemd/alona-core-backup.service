@@ -1,5 +1,5 @@
 [Unit]
-Description=Core Backup (SQLite + /etc/alona)
+Description=Alona Core Backup (SQLite + /etc/alona)
 Wants=network-online.target
 After=network-online.target
 
@@ -12,3 +12,4 @@ ExecStart=/usr/local/bin/alona-core-backup
 # Logs to journald
 StandardOutput=journal
 StandardError=journal
+

@@ -51,7 +51,7 @@ need_root() {
 
 require_files() {
   local missing=0
-  for f in     "$MOSQ_TEMPLATE_DIR/mosquitto.conf"     "$MOSQ_TEMPLATE_DIR/acl"     "$CORE_TEMPLATE_DIR/systemd/core.service"     "$CORE_TEMPLATE_DIR/env/core.env.example"     "$BACKUP_SCRIPTS_DIR/backup.sh"     "$BACKUP_SCRIPTS_DIR/retention.sh"     "$BACKUP_SCRIPTS_DIR/restore.sh"     "$BACKUP_TEMPLATE_DIR/core-backup.service"     "$BACKUP_TEMPLATE_DIR/core-backup.timer"     "$MONITORING_SCRIPTS_DIR/healthcheck.sh"     "$MONITORING_SYSTEMD_DIR/alona-health.service"     "$MONITORING_SYSTEMD_DIR/alona-health.timer"
+  for f in     "$MOSQ_TEMPLATE_DIR/mosquitto.conf"     "$MOSQ_TEMPLATE_DIR/acl"     "$CORE_TEMPLATE_DIR/systemd/alona-core.service"     "$CORE_TEMPLATE_DIR/env/alona-core.env.example"     "$BACKUP_SCRIPTS_DIR/backup.sh"     "$BACKUP_SCRIPTS_DIR/retention.sh"     "$BACKUP_SCRIPTS_DIR/restore.sh"     "$BACKUP_TEMPLATE_DIR/alona-core-backup.service"     "$BACKUP_TEMPLATE_DIR/alona-core-backup.timer"     "$MONITORING_SCRIPTS_DIR/healthcheck.sh"     "$MONITORING_SYSTEMD_DIR/alona-health.service"     "$MONITORING_SYSTEMD_DIR/alona-health.timer"
   do
     [[ -f "$f" ]] || { echo "Missing file: $f"; missing=1; }
   done
@@ -93,7 +93,7 @@ install_packages() {
 
 ensure_user_dirs() {
   id alona >/dev/null 2>&1 || useradd --system --home /var/lib/alona --shell /usr/sbin/nologin alona
-  mkdir -p /etc/alona /var/lib/alona/db /var/lib/alona/backups /var/lib/alona/health /opt/core/releases
+  mkdir -p /etc/alona /var/lib/alona/db /var/lib/alona/backups /var/lib/alona/health /opt/alona-core/releases
   chown -R alona:alona /var/lib/alona
 }
 
@@ -115,11 +115,11 @@ install_mosquitto() {
 
 install_core() {
   [[ "$INSTALL_CORE" -eq 1 ]] || return 0
-  cp "$CORE_TEMPLATE_DIR/systemd/core.service" /etc/systemd/system/core.service
-  [[ -f /etc/alona/core.env ]] || cp "$CORE_TEMPLATE_DIR/env/core.env.example" /etc/alona/core.env
+  cp "$CORE_TEMPLATE_DIR/systemd/alona-core.service" /etc/systemd/system/alona-core.service
+  [[ -f /etc/alona/core.env ]] || cp "$CORE_TEMPLATE_DIR/env/alona-core.env.example" /etc/alona/core.env
   chmod 600 /etc/alona/core.env
   systemctl daemon-reload
-  systemctl enable core
+  systemctl enable alona-core
 }
 
 install_backups() {
@@ -127,10 +127,10 @@ install_backups() {
   install -m 755 "$BACKUP_SCRIPTS_DIR/backup.sh" /usr/local/bin/alona-core-backup
   install -m 755 "$BACKUP_SCRIPTS_DIR/retention.sh" /usr/local/bin/alona-core-retention
   install -m 755 "$BACKUP_SCRIPTS_DIR/restore.sh" /usr/local/bin/alona-core-restore
-  cp "$BACKUP_TEMPLATE_DIR/core-backup.service" /etc/systemd/system/
-  cp "$BACKUP_TEMPLATE_DIR/core-backup.timer" /etc/systemd/system/
+  cp "$BACKUP_TEMPLATE_DIR/alona-core-backup.service" /etc/systemd/system/
+  cp "$BACKUP_TEMPLATE_DIR/alona-core-backup.timer" /etc/systemd/system/
   systemctl daemon-reload
-  systemctl enable --now core-backup.timer
+  systemctl enable --now alona-core-backup.timer
 }
 
 install_monitoring() {

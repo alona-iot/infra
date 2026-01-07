@@ -4,7 +4,7 @@ set -euo pipefail
 # Alona Infra - lightweight healthcheck
 #
 # Checks:
-# - systemd services: mosquitto, core
+# - systemd services: mosquitto, alona-core
 # - disk free threshold
 # - last successful backup age
 # - optional: core health endpoint
@@ -95,10 +95,10 @@ main() {
     errors+=("mosquitto=down")
   fi
 
-  if service_active core; then
+  if service_active alona-core; then
     :
   else
-    errors+=("core=down")
+    errors+=("alona-core=down")
   fi
 
   local used
@@ -121,13 +121,13 @@ main() {
     if check_core_http; then
       :
     else
-      errors+=("core_http=bad")
+      errors+=("alona-core_http=bad")
     fi
   fi
 
   if (( ${#errors[@]} == 0 )); then
-    mark_ok "mosquitto=up core=up disk_used=${used}% backup_age=${age_h}h"
-    echo "OK mosquitto=up core=up disk_used=${used}% backup_age=${age_h}h"
+    mark_ok "mosquitto=up alona-core=up disk_used=${used}% backup_age=${age_h}h"
+    echo "OK mosquitto=up alona-core=up disk_used=${used}% backup_age=${age_h}h"
     exit 0
   else
     mark_fail "${errors[*]}"
