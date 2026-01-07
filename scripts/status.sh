@@ -1,5 +1,6 @@
-
-#!/usr/bin/env bash
+#!/usr/bin/bash
+# ensure we're running in bash
+[ -z "$BASH_VERSION" ] && exec /usr/bin/bash "$0" "$@"
 set -euo pipefail
 
 echo "==> Alona Infra status"
@@ -8,6 +9,7 @@ echo
 echo "-- Services"
 systemctl is-active --quiet mosquitto && echo "mosquitto: active" || echo "mosquitto: NOT active"
 systemctl is-active --quiet alona-core && echo "alona-core: active" || echo "alona-core: NOT active"
+systemctl is-active --quiet alona-health.timer && echo "alona-health.timer: active" || echo "alona-health.timer: NOT active"
 echo
 
 echo "-- Symlinks"
